@@ -1,8 +1,8 @@
-import initSqlJs from "sql.js";
+import initSqlJs, { Database } from "sql.js";
 
-let db: { run: (arg0: string) => void; export: () => any };
+let db: Database | null = null;
 
-export async function getDB() {
+export async function getDB(): Promise<Database> {
   if (db) return db;
 
   const SQL = await initSqlJs({
@@ -10,12 +10,12 @@ export async function getDB() {
   });
 
   db = new SQL.Database();
-  createTables();
+  createTables(db);
 
   return db;
 }
 
-function createTables() {
+function createTables(db: Database) {
   db.run(`
     CREATE TABLE IF NOT EXISTS alumni (
       alumni_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,35 +70,35 @@ function createTables() {
     );
 
     CREATE TABLE IF NOT EXISTS participated_alumni_event (
-      participation_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      event_id INTEGER,
-      alumni_id INTEGER,
-      role TEXT,
-      created_by TEXT,
-      date_created TEXT,
-      updated_by TEXT,
-      date_updated TEXT,
-      deleted_by TEXT,
-      is_deleted INTEGER DEFAULT 0,
-      FOREIGN KEY(event_id) REFERENCES events(event_id),
-      FOREIGN KEY(alumni_id) REFERENCES alumni(alumni_id)
-    );
+       participation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+       event_id INTEGER,
+       alumni_id INTEGER,
+       role TEXT,
+       created_by TEXT,
+       date_created TEXT,
+       updated_by TEXT,
+       date_updated TEXT,
+       deleted_by TEXT,
+       is_deleted INTEGER DEFAULT 0,
+       FOREIGN KEY(event_id) REFERENCES events(event_id),
+       FOREIGN KEY(alumni_id) REFERENCES alumni(alumni_id)
+     );
   `);
 }
 
 export function saveDB() {
+  if (!db) return;
   const data = db.export();
 
   localStorage.setItem("abc_alumni", JSON.stringify(Array.from(data)));
 }
 
-// @ts-ignore
-export function loadDB(SQL) {
+export function loadDB(SQL: any) {
   const saved = localStorage.getItem("abc_alumni");
 
   if (saved) {
-    const buffer = new Uint8Array(JSON.parse(saved));
+    const uInt8Array = new Uint8Array(JSON.parse(saved));
 
-    db = new SQL.Database(buffer);
+    db = new SQL.Database(uInt8Array);
   }
 }
