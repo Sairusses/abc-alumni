@@ -16,7 +16,7 @@ import {
   createEvent,
   updateEvent,
   softDeleteEvent,
-} from "../db/eventRepo";
+} from "@/backend/eventHelper.ts";
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);

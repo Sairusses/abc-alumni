@@ -22,7 +22,7 @@ import {
   findAllAlumni,
   Event,
   Alumni,
-} from "../db/participationRepo";
+} from "@/backend/participationHelper.ts";
 
 export default function ParticipationPage() {
   const [participations, setParticipations] = useState<Participation[]>([]);

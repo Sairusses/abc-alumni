@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@heroui/react";
 
-import { Alumni, findAll, create, update, softDelete } from "../db/alumniRepo";
+import { Alumni, findAll, create, update, softDelete } from "@/backend/alumniHelper.ts";
 
 export default function AlumniPage() {
   const [alumni, setAlumni] = useState<Alumni[]>([]);

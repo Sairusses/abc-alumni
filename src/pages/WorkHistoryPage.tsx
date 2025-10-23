@@ -20,7 +20,7 @@ import {
   softDeleteWork,
   Alumni,
   findAllAlumni,
-} from "../db/workRepo";
+} from "@/backend/workHelper.ts";
 
 export default function WorkHistoryPage() {
   const [work, setWork] = useState<WorkHistory[]>([]);
