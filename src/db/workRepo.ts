@@ -1,54 +1,69 @@
-import { getDB, saveDB } from "./initDB";
+import { getDB } from "./initDB";
 
-export async function getAllWorkHistory() {
-  const db = await getDB();
-  const res = db.exec("SELECT * FROM work_history WHERE is_deleted = 0");
+export type EmploymentStatus = "Current" | "Previous";
 
-  return res[0]?.values || [];
+export interface WorkHistory {
+  employment_id?: number;
+  alumni_id: number;
+  company_name: string;
+  position: string;
+  start_date: string;
+  end_date?: string;
+  status: EmploymentStatus;
+  created_by?: string;
+  date_created?: string;
+  updated_by?: string;
+  date_updated?: string;
+  deleted_by?: string;
+  is_deleted?: number;
 }
 
-export async function addWorkHistory(data: Record<string, any>) {
-  const db = await getDB();
+export class WorkRepo {
+  db = getDB();
 
-  db.run(
-    `INSERT INTO work_history (
-      alumni_id, company_name, position, start_date, end_date, status,
-      created_by, date_created
-    ) VALUES (?, ?, ?, ?, ?, ?, 'admin', date('now'))`,
-    [
-      data.alumni_id,
-      data.company_name,
-      data.position,
-      data.start_date,
-      data.end_date,
-      data.status,
-    ],
-  );
-  saveDB();
-}
+  create(work: WorkHistory) {
+    const stmt = this.db.prepare(`
+      INSERT INTO work_history (
+        alumni_id, company_name, position, start_date, end_date, status,
+        created_by, date_created
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+      work.alumni_id,
+      work.company_name,
+      work.position,
+      work.start_date,
+      work.end_date || null,
+      work.status,
+      work.created_by || null,
+      work.date_created || new Date().toISOString()
+    );
+  }
 
-export async function updateWorkHistory(id: number, data: Record<string, any>) {
-  const db = await getDB();
+  findAllByAlumni(alumni_id: number) {
+    return this.db
+      .prepare("SELECT * FROM work_history WHERE alumni_id = ? AND is_deleted = 0")
+      .all(alumni_id);
+  }
 
-  db.run(
-    `UPDATE work_history
-     SET company_name=?, position=?, start_date=?, end_date=?, status=?, updated_by='admin', date_updated=date('now')
-     WHERE employment_id=?`,
-    [
-      data.company_name,
-      data.position,
-      data.start_date,
-      data.end_date,
-      data.status,
-      id,
-    ],
-  );
-  saveDB();
-}
+  findById(id: number) {
+    return this.db
+      .prepare("SELECT * FROM work_history WHERE employment_id = ?")
+      .get(id);
+  }
 
-export async function deleteWorkHistory(id: number) {
-  const db = await getDB();
+  update(id: number, data: Partial<WorkHistory>) {
+    const fields = Object.keys(data)
+      .map((k) => `${k} = @${k}`)
+      .join(", ");
+    this.db
+      .prepare(`UPDATE work_history SET ${fields} WHERE employment_id = @id`)
+      .run({ ...data, id });
+  }
 
-  db.run("UPDATE work_history SET is_deleted=1 WHERE employment_id=?", [id]);
-  saveDB();
+  softDelete(id: number, deleted_by?: string) {
+    this.db
+      .prepare(`UPDATE work_history SET is_deleted = 1, deleted_by = ? WHERE employment_id = ?`)
+      .run(deleted_by || null, id);
+  }
 }

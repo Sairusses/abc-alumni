@@ -1,38 +1,56 @@
-import { getDB, saveDB } from "./initDB";
+import { getDB } from "./initDB";
 
-export async function getAllEvents() {
-  const db = await getDB();
-  const res = db.exec("SELECT * FROM events WHERE is_deleted = 0");
-
-  return res[0]?.values || [];
+export interface Event {
+  event_id?: number;
+  name: string;
+  description?: string;
+  event_date: string;
+  location?: string;
+  created_by?: string;
+  date_created?: string;
+  updated_by?: string;
+  date_updated?: string;
+  deleted_by?: string;
+  is_deleted?: number;
 }
 
-export async function addEvent(data: Record<string, any>) {
-  const db = await getDB();
+export class EventRepo {
+  db = getDB();
 
-  db.run(
-    `INSERT INTO events (name, description, event_date, location, created_by, date_created)
-     VALUES (?, ?, ?, ?, 'admin', date('now'))`,
-    [data.name, data.description, data.event_date, data.location],
-  );
-  saveDB();
-}
+  create(event: Event) {
+    const stmt = this.db.prepare(`
+      INSERT INTO events (
+        name, description, event_date, location, created_by, date_created
+      ) VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+      event.name,
+      event.description || null,
+      event.event_date,
+      event.location || null,
+      event.created_by || null,
+      event.date_created || new Date().toISOString()
+    );
+  }
 
-export async function updateEvent(id: number, data: Record<string, any>) {
-  const db = await getDB();
+  findAll() {
+    return this.db.prepare("SELECT * FROM events WHERE is_deleted = 0").all();
+  }
 
-  db.run(
-    `UPDATE events
-     SET name=?, description=?, event_date=?, location=?, updated_by='admin', date_updated=date('now')
-     WHERE event_id=?`,
-    [data.name, data.description, data.event_date, data.location, id],
-  );
-  saveDB();
-}
+  findById(id: number) {
+    return this.db.prepare("SELECT * FROM events WHERE event_id = ?").get(id);
+  }
 
-export async function deleteEvent(id: number) {
-  const db = await getDB();
+  update(id: number, data: Partial<Event>) {
+    const fields = Object.keys(data)
+      .map((k) => `${k} = @${k}`)
+      .join(", ");
+    this.db.prepare(`UPDATE events SET ${fields} WHERE event_id = @id`).run({ ...data, id });
+  }
 
-  db.run("UPDATE events SET is_deleted=1 WHERE event_id=?", [id]);
-  saveDB();
+  softDelete(id: number, deleted_by?: string) {
+    this.db
+      .prepare(`UPDATE events SET is_deleted = 1, deleted_by = ? WHERE event_id = ?`)
+      .run(deleted_by || null, id);
+  }
 }

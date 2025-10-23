@@ -1,47 +1,68 @@
-import { getDB, saveDB } from "./initDB";
+import { getDB } from "./initDB";
 
-export async function getAllParticipations() {
-  const db = await getDB();
-  const res = db.exec(
-    "SELECT * FROM participated_alumni_event WHERE is_deleted = 0",
-  );
+export type ParticipationRole = "Attendee" | "Organizer" | "Speaker";
 
-  return res[0]?.values || [];
+export interface Participation {
+  participation_id?: number;
+  event_id: number;
+  alumni_id: number;
+  role: ParticipationRole;
+  created_by?: string;
+  date_created?: string;
+  updated_by?: string;
+  date_updated?: string;
+  deleted_by?: string;
+  is_deleted?: number;
 }
 
-export async function addParticipation(data: Record<string, any>) {
-  const db = await getDB();
+export class ParticipationRepo {
+  db = getDB();
 
-  db.run(
-    `INSERT INTO participated_alumni_event (
-      event_id, alumni_id, role, created_by, date_created
-    ) VALUES (?, ?, ?, 'admin', date('now'))`,
-    [data.event_id, data.alumni_id, data.role],
-  );
-  saveDB();
-}
+  create(part: Participation) {
+    const stmt = this.db.prepare(`
+      INSERT INTO participated_alumni_event (
+        event_id, alumni_id, role, created_by, date_created
+      ) VALUES (?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+      part.event_id,
+      part.alumni_id,
+      part.role,
+      part.created_by || null,
+      part.date_created || new Date().toISOString()
+    );
+  }
 
-export async function updateParticipation(
-  id: number,
-  data: Record<string, any>,
-) {
-  const db = await getDB();
+  findAllByEvent(event_id: number) {
+    return this.db
+      .prepare("SELECT * FROM participated_alumni_event WHERE event_id = ? AND is_deleted = 0")
+      .all(event_id);
+  }
 
-  db.run(
-    `UPDATE participated_alumni_event
-     SET event_id=?, alumni_id=?, role=?, updated_by='admin', date_updated=date('now')
-     WHERE participation_id=?`,
-    [data.event_id, data.alumni_id, data.role, id],
-  );
-  saveDB();
-}
+  findAllByAlumni(alumni_id: number) {
+    return this.db
+      .prepare("SELECT * FROM participated_alumni_event WHERE alumni_id = ? AND is_deleted = 0")
+      .all(alumni_id);
+  }
 
-export async function deleteParticipation(id: number) {
-  const db = await getDB();
+  findById(id: number) {
+    return this.db
+      .prepare("SELECT * FROM participated_alumni_event WHERE participation_id = ?")
+      .get(id);
+  }
 
-  db.run(
-    "UPDATE participated_alumni_event SET is_deleted=1 WHERE participation_id=?",
-    [id],
-  );
-  saveDB();
+  update(id: number, data: Partial<Participation>) {
+    const fields = Object.keys(data)
+      .map((k) => `${k} = @${k}`)
+      .join(", ");
+    this.db
+      .prepare(`UPDATE participated_alumni_event SET ${fields} WHERE participation_id = @id`)
+      .run({ ...data, id });
+  }
+
+  softDelete(id: number, deleted_by?: string) {
+    this.db
+      .prepare(`UPDATE participated_alumni_event SET is_deleted = 1, deleted_by = ? WHERE participation_id = ?`)
+      .run(deleted_by || null, id);
+  }
 }
