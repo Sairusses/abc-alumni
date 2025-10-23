@@ -1,11 +1,13 @@
-import { getDB } from "./initDB";
+import axios from "axios";
+
+const API = "http://localhost:5000/api/events";
 
 export interface Event {
   event_id?: number;
   name: string;
-  description?: string;
+  description: string;
   event_date: string;
-  location?: string;
+  location: string;
   created_by?: string;
   date_created?: string;
   updated_by?: string;
@@ -14,43 +16,26 @@ export interface Event {
   is_deleted?: number;
 }
 
-export class EventRepo {
-  db = getDB();
+export const findAllEvents = async (): Promise<Event[]> => {
+  const res = await axios.get(API);
 
-  create(event: Event) {
-    const stmt = this.db.prepare(`
-      INSERT INTO events (
-        name, description, event_date, location, created_by, date_created
-      ) VALUES (?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(
-      event.name,
-      event.description || null,
-      event.event_date,
-      event.location || null,
-      event.created_by || null,
-      event.date_created || new Date().toISOString()
-    );
-  }
+  return res.data;
+};
 
-  findAll() {
-    return this.db.prepare("SELECT * FROM events WHERE is_deleted = 0").all();
-  }
+export const createEvent = async (event: Partial<Event>) => {
+  const res = await axios.post(API, event);
 
-  findById(id: number) {
-    return this.db.prepare("SELECT * FROM events WHERE event_id = ?").get(id);
-  }
+  return res.data;
+};
 
-  update(id: number, data: Partial<Event>) {
-    const fields = Object.keys(data)
-      .map((k) => `${k} = @${k}`)
-      .join(", ");
-    this.db.prepare(`UPDATE events SET ${fields} WHERE event_id = @id`).run({ ...data, id });
-  }
+export const updateEvent = async (id: number, event: Partial<Event>) => {
+  const res = await axios.put(`${API}/${id}`, event);
 
-  softDelete(id: number, deleted_by?: string) {
-    this.db
-      .prepare(`UPDATE events SET is_deleted = 1, deleted_by = ? WHERE event_id = ?`)
-      .run(deleted_by || null, id);
-  }
-}
+  return res.data;
+};
+
+export const softDeleteEvent = async (id: number, deleted_by: string) => {
+  const res = await axios.delete(`${API}/${id}`, { data: { deleted_by } });
+
+  return res.data;
+};

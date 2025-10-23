@@ -1,47 +1,50 @@
-import { useEffect, useState } from "react";
-import { Button, Input } from "@heroui/react";
+import React, { useEffect, useState } from "react";
 import {
+  Button,
+  Input,
+  Select,
+  SelectItem,
   Table,
-  TableHeader,
   TableBody,
-  TableColumn,
-  TableRow,
   TableCell,
-} from "@heroui/table";
+  TableColumn,
+  TableHeader,
+  TableRow,
+} from "@heroui/react";
 
 import {
-  getAllParticipations,
-  addParticipation,
+  Participation,
+  findAllParticipations,
+  createParticipation,
   updateParticipation,
-  deleteParticipation,
+  softDeleteParticipation,
+  findAllEvents,
+  findAllAlumni,
+  Event,
+  Alumni,
 } from "../db/participationRepo";
 
-interface Participation {
-  participation_id: number;
-  event_id: number;
-  alumni_id: number;
-  role: string;
-}
-
 export default function ParticipationPage() {
-  const [records, setRecords] = useState<Participation[]>([]);
-  const [form, setForm] = useState({
-    event_id: "",
-    alumni_id: "",
-    role: "",
-  });
+  const [participations, setParticipations] = useState<Participation[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [alumni, setAlumni] = useState<Alumni[]>([]);
+  const [form, setForm] = useState<Partial<Participation>>({});
   const [editId, setEditId] = useState<number | null>(null);
 
   const load = async () => {
-    const rows = await getAllParticipations();
-    const data: Participation[] = rows.map((r: any[]) => ({
-      participation_id: Number(r[0]) || 0,
-      event_id: Number(r[1]) || 0,
-      alumni_id: Number(r[2]) || 0,
-      role: String(r[3] || ""),
-    }));
+    try {
+      const [pRows, eRows, aRows] = await Promise.all([
+        findAllParticipations(),
+        findAllEvents(),
+        findAllAlumni(),
+      ]);
 
-    setRecords(data);
+      setParticipations(pRows);
+      setEvents(eRows);
+      setAlumni(aRows);
+    } catch (err) {
+      console.error("Failed to load data", err);
+    }
   };
 
   useEffect(() => {
@@ -50,85 +53,153 @@ export default function ParticipationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editId) await updateParticipation(editId, form);
-    else await addParticipation(form);
-    setForm({ event_id: "", alumni_id: "", role: "" });
-    setEditId(null);
-    load();
+    try {
+      if (editId) {
+        await updateParticipation(editId, form);
+      } else {
+        await createParticipation(form as Participation);
+      }
+      setForm({});
+      setEditId(null);
+      await load();
+    } catch (err) {
+      console.error("Failed to save participation", err);
+    }
   };
 
   const handleDelete = async (id: number) => {
-    await deleteParticipation(id);
-    load();
+    try {
+      await softDeleteParticipation(id, form.updated_by || "unknown_user");
+      await load();
+    } catch (err) {
+      console.error("Failed to delete participation", err);
+    }
   };
 
+  const eventOptions = events.map((e) => ({
+    key: String(e.event_id),
+    label: e.name,
+  }));
+
+  const alumniOptions = alumni.map((a) => ({
+    key: String(a.alumni_id),
+    label: `${a.first_name} ${a.last_name}`,
+  }));
+
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">🗣️ Event Participation</h1>
+    <div className="p-6 max-w-4xl mx-auto bg-gray-50 dark:bg-[#121212] rounded-lg shadow-md">
+      <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">
+        Event Participation
+      </h1>
 
       {/* Form */}
       <form
-        className="space-y-3 bg-white p-4 rounded-lg shadow"
+        className="grid grid-cols-2 gap-4 bg-white dark:bg-[#1A1A1A] p-6 rounded-xl shadow-md mb-8"
         onSubmit={handleSubmit}
       >
-        <Input
-          label="Event ID"
-          value={form.event_id}
-          onChange={(e) => setForm({ ...form, event_id: e.target.value })}
-        />
-        <Input
-          label="Alumni ID"
-          value={form.alumni_id}
-          onChange={(e) => setForm({ ...form, alumni_id: e.target.value })}
-        />
-        <Input
+        <Select
+          items={eventOptions}
+          label="Event"
+          placeholder="Select Event"
+          selectedKeys={form.event_id ? [String(form.event_id)] : []}
+          onChange={(e) =>
+            setForm({ ...form, event_id: Number(e.target.value) })
+          }
+        >
+          {(item) => <SelectItem>{item.label}</SelectItem>}
+        </Select>
+
+        <Select
+          items={alumniOptions}
+          label="Alumni"
+          placeholder="Select Alumni"
+          selectedKeys={form.alumni_id ? [String(form.alumni_id)] : []}
+          onChange={(e) =>
+            setForm({ ...form, alumni_id: Number(e.target.value) })
+          }
+        >
+          {(item) => <SelectItem>{item.label}</SelectItem>}
+        </Select>
+
+        <Select
           label="Role"
-          value={form.role}
+          selectedKeys={[form.role || ""]}
           onChange={(e) => setForm({ ...form, role: e.target.value })}
+        >
+          <SelectItem key="Attendee">Attendee</SelectItem>
+          <SelectItem key="Organizer">Organizer</SelectItem>
+          <SelectItem key="Speaker">Speaker</SelectItem>
+        </Select>
+
+        <Input
+          isDisabled={!editId}
+          label="Updated By"
+          value={form.updated_by || ""}
+          onChange={(e) => setForm({ ...form, updated_by: e.target.value })}
         />
-        <Button color="primary" type="submit">
-          {editId ? "Update" : "Add"}
-        </Button>
+
+        <div className="md:col-span-2">
+          <Button className="w-full py-2" type="submit">
+            {editId ? "Update Record" : "Add Record"}
+          </Button>
+        </div>
       </form>
 
       {/* Table */}
-      <Table aria-label="Participation Table" className="mt-6">
-        <TableHeader>
-          <TableColumn>Event ID</TableColumn>
-          <TableColumn>Alumni ID</TableColumn>
-          <TableColumn>Role</TableColumn>
-          <TableColumn>Actions</TableColumn>
-        </TableHeader>
-        <TableBody>
-          {records.map((r) => (
-            <TableRow key={r.participation_id}>
-              <TableCell>{r.event_id}</TableCell>
-              <TableCell>{r.alumni_id}</TableCell>
-              <TableCell>{r.role}</TableCell>
-              <TableCell>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    onPress={() => {
-                      setForm(r);
-                      setEditId(r.participation_id);
-                    }}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    color="danger"
-                    size="sm"
-                    onPress={() => handleDelete(r.participation_id)}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="overflow-x-auto">
+        <Table aria-label="Participation Table" className="min-w-full">
+          <TableHeader>
+            <TableColumn>Event</TableColumn>
+            <TableColumn>Alumni</TableColumn>
+            <TableColumn>Role</TableColumn>
+            <TableColumn>Updated By</TableColumn>
+            <TableColumn>Date Updated</TableColumn>
+            <TableColumn>Actions</TableColumn>
+          </TableHeader>
+          <TableBody>
+            {participations.map((p) => {
+              const eventName = events.find((e) => e.event_id === p.event_id);
+              const alumniName = alumni.find(
+                (a) => a.alumni_id === p.alumni_id,
+              );
+
+              return (
+                <TableRow key={p.participation_id}>
+                  <TableCell>{eventName ? eventName.name : "—"}</TableCell>
+                  <TableCell>
+                    {alumniName
+                      ? `${alumniName.first_name} ${alumniName.last_name}`
+                      : "—"}
+                  </TableCell>
+                  <TableCell>{p.role}</TableCell>
+                  <TableCell>{p.updated_by || "—"}</TableCell>
+                  <TableCell>{p.date_updated || "—"}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onPress={() => {
+                          setForm(p);
+                          setEditId(p.participation_id ?? null);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        color="danger"
+                        size="sm"
+                        onPress={() => handleDelete(p.participation_id ?? 0)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

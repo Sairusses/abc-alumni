@@ -266,7 +266,7 @@ app.post("/api/participated_alumni_event", (req, res) => {
   `);
   const info = stmt.run(event_id, alumni_id, role, created_by);
 
-  res.json({ insertedId: info.lastInsertRowid });
+  res.json({ insertedIyd: info.lastInsertRowid });
 });
 
 app.put("/api/participated_alumni_event/:id", (req, res) => {
@@ -299,6 +299,5 @@ app.delete("/api/participated_alumni_event/:id", (req, res) => {
 const PORT = 5000;
 
 app.listen(PORT, () =>
-  // eslint-disable-next-line no-console
   console.log(`Server running on http://localhost:${PORT}`),
 );
