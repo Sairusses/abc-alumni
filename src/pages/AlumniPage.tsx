@@ -31,7 +31,7 @@ export default function AlumniPage() {
   };
 
   useEffect(() => {
-     load();
+    load();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,7 +60,9 @@ export default function AlumniPage() {
   };
 
   // Dropdown options
-  const years = Array.from({ length: 50 }, (_, i) => String(1980 + i)).reverse();
+  const years = Array.from({ length: 50 }, (_, i) =>
+    String(1980 + i),
+  ).reverse();
   const degreeOptions = [
     "BSCS - Bachelor of Science in Computer Science",
     "BSIT - Bachelor of Science in Information Technology",
@@ -107,7 +109,9 @@ export default function AlumniPage() {
           label="Gender"
           placeholder="Select Gender"
           selectedKeys={form.gender ? [form.gender] : []}
-          onChange={(e) => setForm({ ...form, gender: e.target.value as Alumni["gender"] })}
+          onChange={(e) =>
+            setForm({ ...form, gender: e.target.value as Alumni["gender"] })
+          }
         >
           {genderOptions.map((g) => (
             <SelectItem key={g}>{g}</SelectItem>
@@ -139,8 +143,12 @@ export default function AlumniPage() {
         <Select
           label="Graduation Year"
           placeholder="Select Year"
-          selectedKeys={form.graduation_year ? [String(form.graduation_year)] : []}
-          onChange={(e) => setForm({ ...form, graduation_year: Number(e.target.value) })}
+          selectedKeys={
+            form.graduation_year ? [String(form.graduation_year)] : []
+          }
+          onChange={(e) =>
+            setForm({ ...form, graduation_year: Number(e.target.value) })
+          }
         >
           {years.map((year) => (
             <SelectItem key={year}>{year}</SelectItem>
@@ -162,7 +170,9 @@ export default function AlumniPage() {
           label="Status"
           placeholder="Select Status"
           selectedKeys={form.status ? [form.status] : []}
-          onChange={(e) => setForm({ ...form, status: e.target.value as Alumni["status"] })}
+          onChange={(e) =>
+            setForm({ ...form, status: e.target.value as Alumni["status"] })
+          }
         >
           {statusOptions.map((st) => (
             <SelectItem key={st}>{st}</SelectItem>
@@ -170,6 +180,7 @@ export default function AlumniPage() {
         </Select>
 
         <Input
+          isDisabled={!editId}
           label="Updated By"
           placeholder="Enter your username"
           value={form.updated_by || ""}
@@ -177,11 +188,7 @@ export default function AlumniPage() {
         />
 
         <div className="md:col-span-2 mt-4">
-          <Button
-            className="w-full py-2 text-lg font-semibold"
-            color="primary"
-            type="submit"
-          >
+          <Button className="w-full py-2 font-semibold" type="submit">
             {editId ? "Update Record" : "Add Record"}
           </Button>
         </div>

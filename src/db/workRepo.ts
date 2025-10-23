@@ -1,6 +1,6 @@
-import { getDB } from "./initDB";
+import axios from "axios";
 
-export type EmploymentStatus = "Current" | "Previous";
+const API = "http://localhost:5000/api/work_history";
 
 export interface WorkHistory {
   employment_id?: number;
@@ -9,7 +9,7 @@ export interface WorkHistory {
   position: string;
   start_date: string;
   end_date?: string;
-  status: EmploymentStatus;
+  status: "Current" | "Previous";
   created_by?: string;
   date_created?: string;
   updated_by?: string;
@@ -18,52 +18,38 @@ export interface WorkHistory {
   is_deleted?: number;
 }
 
-export class WorkRepo {
-  db = getDB();
-
-  create(work: WorkHistory) {
-    const stmt = this.db.prepare(`
-      INSERT INTO work_history (
-        alumni_id, company_name, position, start_date, end_date, status,
-        created_by, date_created
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(
-      work.alumni_id,
-      work.company_name,
-      work.position,
-      work.start_date,
-      work.end_date || null,
-      work.status,
-      work.created_by || null,
-      work.date_created || new Date().toISOString()
-    );
-  }
-
-  findAllByAlumni(alumni_id: number) {
-    return this.db
-      .prepare("SELECT * FROM work_history WHERE alumni_id = ? AND is_deleted = 0")
-      .all(alumni_id);
-  }
-
-  findById(id: number) {
-    return this.db
-      .prepare("SELECT * FROM work_history WHERE employment_id = ?")
-      .get(id);
-  }
-
-  update(id: number, data: Partial<WorkHistory>) {
-    const fields = Object.keys(data)
-      .map((k) => `${k} = @${k}`)
-      .join(", ");
-    this.db
-      .prepare(`UPDATE work_history SET ${fields} WHERE employment_id = @id`)
-      .run({ ...data, id });
-  }
-
-  softDelete(id: number, deleted_by?: string) {
-    this.db
-      .prepare(`UPDATE work_history SET is_deleted = 1, deleted_by = ? WHERE employment_id = ?`)
-      .run(deleted_by || null, id);
-  }
+export interface Alumni {
+  alumni_id: number;
+  first_name: string;
+  last_name: string;
 }
+
+export const findAllWork = async (): Promise<WorkHistory[]> => {
+  const res = await axios.get(API);
+
+  return res.data;
+};
+
+export const createWork = async (work: Partial<WorkHistory>) => {
+  const res = await axios.post(API, work);
+
+  return res.data;
+};
+
+export const updateWork = async (id: number, work: Partial<WorkHistory>) => {
+  const res = await axios.put(`${API}/${id}`, work);
+
+  return res.data;
+};
+
+export const softDeleteWork = async (id: number, deleted_by: string) => {
+  const res = await axios.delete(`${API}/${id}`, { data: { deleted_by } });
+
+  return res.data;
+};
+
+export const findAllAlumni = async (): Promise<Alumni[]> => {
+  const res = await axios.get("http://localhost:5000/api/alumni");
+
+  return res.data;
+};
