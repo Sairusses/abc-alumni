@@ -16,19 +16,7 @@ export default function DefaultLayout({
       </main>
 
       {/* Footer */}
-      <footer className="w-full bg-gray-100 dark:bg-[#1A1A1A] border-t border-gray-200 dark:border-[#2d2d2d] mt-8 py-4">
-        <div className="container mx-auto max-w-7xl px-6 flex flex-col sm:flex-row justify-between items-center text-center sm:text-left">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            © {new Date().getFullYear()} ABC Alumni Portal.
-          </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 sm:mt-0">
-            Developed by{" "}
-            <span className="font-semibold text-gray-800 dark:text-gray-200">
-              Team ABC
-            </span>
-          </p>
-        </div>
-      </footer>
+      <footer className="w-full bg-gray-100 dark:bg-[#1A1A1A] border-t border-gray-200 dark:border-[#2d2d2d] mt-8 py-4" />
     </div>
   );
 }
