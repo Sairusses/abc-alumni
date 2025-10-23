@@ -1,4 +1,3 @@
-import { Input } from "@heroui/input";
 import {
   Navbar as HeroUINavbar,
   NavbarBrand,
@@ -11,32 +10,16 @@ import {
 import { Link } from "react-router-dom";
 
 import { ThemeSwitch } from "@/components/theme-switch";
-import { SearchIcon } from "@/components/icons";
 import { Logo } from "@/components/icons";
 
 export const Navbar = () => {
   const navItems = [
-    { label: "Alumni", href: "/" },
+    { label: "Alumni", href: "/alumni" },
     { label: "Work History", href: "/work-history" },
     { label: "Events", href: "/events" },
     { label: "Participation", href: "/participation" },
   ];
 
-  const searchInput = (
-    <Input
-      aria-label="Search"
-      classNames={{
-        inputWrapper: "bg-default-100",
-        input: "text-sm",
-      }}
-      labelPlacement="outside"
-      placeholder="Search..."
-      startContent={
-        <SearchIcon className="text-base text-default-400 pointer-events-none flex-shrink-0" />
-      }
-      type="search"
-    />
-  );
 
   return (
     <HeroUINavbar maxWidth="xl" position="sticky">
@@ -66,7 +49,6 @@ export const Navbar = () => {
 
       {/* Right side */}
       <NavbarContent justify="end">
-        <NavbarItem className="hidden lg:flex">{searchInput}</NavbarItem>
         <NavbarItem>
           <ThemeSwitch />
         </NavbarItem>
